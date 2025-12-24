@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Назначения | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('partials/sidebar', { active: 'enrollments' }) %>
+    
+    <main class="admin-main">
+      <div class="page-header">
+        <h1 class="page-title">Назначения на курсы</h1>
+        <p class="page-subtitle">Назначайте учеников на курсы</p>
+      </div>
+      
+      <% if (typeof query !== 'undefined' && query.error === 'exists') { %>
+        <div class="alert alert-error">❌ Ученик уже назначен на этот курс</div>
+      <% } %>
+      
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title" style="margin-bottom: 1rem;">Назначить на курс</h3>
+        
+        <% if (users.length === 0 || courses.length === 0) { %>
+          <div class="alert alert-warning">
+            <% if (users.length === 0) { %>
+              Сначала добавьте учеников в разделе «Ученики»
+            <% } else { %>
+              Сначала создайте курс в разделе «Курсы»
+            <% } %>
+          </div>
+        <% } else { %>
+          <form method="POST" action="/admin/enrollments" class="flex gap-2" style="align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+              <label class="form-label">Ученик</label>
+              <select name="user_id" class="form-select" required>
+                <option value="">Выберите ученика</option>
+                <% users.forEach(u => { %>
+                  <option value="<%= u.id %>"><%= u.name || u.email %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+              <label class="form-label">Курс</label>
+              <select name="course_id" class="form-select" required>
+                <option value="">Выберите курс</option>
+                <% courses.forEach(c => { %>
+                  <option value="<%= c.id %>"><%= c.title %></option>
+                <% }) %>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Назначить</button>
+          </form>
+          <p class="form-help" style="margin-top: 0.75rem;">
+            При назначении ученику автоматически откроется первый степ курса.
+          </p>
+        <% } %>
+      </div>
+      
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom: 1rem;">Текущие назначения</h3>
+        
+        <% if (enrollments.length === 0) { %>
+          <div class="empty-state">
+            <p class="empty-state-text">Нет назначений</p>
+          </div>
+        <% } else { %>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Ученик</th>
+                  <th>Курс</th>
+                  <th>Дата назначения</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% enrollments.forEach(e => { %>
+                  <tr>
+                    <td>
+                      <strong><%= e.user_name %></strong><br>
+                      <span class="text-muted text-sm"><%= e.email %></span>
+                    </td>
+                    <td><%= e.course_title %></td>
+                    <td class="text-muted text-sm">
+                      <%= new Date(e.enrolled_at).toLocaleDateString('ru-RU') %>
+                    </td>
+                    <td>
+                      <form method="POST" action="/admin/enrollments/<%= e.id %>/delete" style="display: inline;" onsubmit="return confirm('Отменить назначение? Прогресс ученика будет удалён.')">
+                        <button type="submit" class="btn btn-danger btn-sm">Отменить</button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

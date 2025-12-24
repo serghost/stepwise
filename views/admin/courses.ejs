@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Курсы | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('partials/sidebar', { active: 'courses' }) %>
+    
+    <main class="admin-main">
+      <div class="page-header flex justify-between items-center">
+        <div>
+          <h1 class="page-title">Курсы</h1>
+          <p class="page-subtitle">Управление курсами</p>
+        </div>
+        <a href="/admin/courses/new" class="btn btn-primary">+ Создать курс</a>
+      </div>
+      
+      <% if (courses.length === 0) { %>
+        <div class="card">
+          <div class="empty-state">
+            <div class="empty-state-icon">📚</div>
+            <p class="empty-state-text">Пока нет курсов</p>
+            <a href="/admin/courses/new" class="btn btn-primary">Создать первый курс</a>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="grid grid-3">
+          <% courses.forEach(course => { %>
+            <div class="card">
+              <h3 style="margin-bottom: 0.5rem;"><%= course.title %></h3>
+              <p class="text-muted text-sm" style="margin-bottom: 1rem;">
+                <%= course.steps_count %> степов · <%= course.enrolled_count %> учеников
+              </p>
+              <div class="flex gap-1" style="flex-wrap: wrap;">
+                <a href="/admin/courses/<%= course.id %>/steps" class="btn btn-secondary btn-sm">
+                  📋 Степы
+                </a>
+                <a href="/admin/courses/<%= course.id %>/edit" class="btn btn-secondary btn-sm">
+                  ✏️ Редактировать
+                </a>
+                <form method="POST" action="/admin/courses/<%= course.id %>/delete" style="display: inline;" onsubmit="return confirm('Удалить курс и все его степы?')">
+                  <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                </form>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </main>
+  </div>
+</body>
+</html>

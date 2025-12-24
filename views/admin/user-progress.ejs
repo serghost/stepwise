@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Прогресс: <%= user.name %> | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('partials/sidebar', { active: 'progress' }) %>
+    
+    <main class="admin-main">
+      <div class="breadcrumb">
+        <a href="/admin/progress">Прогресс</a>
+        <span class="breadcrumb-sep">→</span>
+        <a href="/admin/progress?course=<%= course.id %>"><%= course.title %></a>
+        <span class="breadcrumb-sep">→</span>
+        <span><%= user.name %></span>
+      </div>
+      
+      <div class="page-header">
+        <h1 class="page-title"><%= user.name %></h1>
+        <p class="page-subtitle">Прогресс по курсу «<%= course.title %>»</p>
+      </div>
+      
+      <div class="card">
+        <div class="steps-list">
+          <% steps.forEach((step, index) => { %>
+            <div class="step-item <%= step.status %>">
+              <div class="step-number">
+                <% if (step.status === 'completed') { %>✓<% } else { %><%= index + 1 %><% } %>
+              </div>
+              <div class="step-content" style="flex: 1;">
+                <div class="step-title"><%= step.title %></div>
+                <div class="step-status">
+                  <% if (step.status === 'locked') { %>
+                    <span class="badge badge-muted">🔒 Заблокирован</span>
+                  <% } else if (step.status === 'open') { %>
+                    <span class="badge badge-info">📝 Доступен</span>
+                  <% } else if (step.status === 'pending') { %>
+                    <span class="badge badge-warning">⏳ На проверке</span>
+                    <% if (step.submitted_at) { %>
+                      <span class="text-muted text-sm" style="margin-left: 0.5rem;">
+                        <%= new Date(step.submitted_at).toLocaleDateString('ru-RU') %>
+                      </span>
+                    <% } %>
+                  <% } else if (step.status === 'rejected') { %>
+                    <span class="badge badge-error">❌ Отклонено</span>
+                  <% } else if (step.status === 'completed') { %>
+                    <span class="badge badge-success">✅ Выполнен</span>
+                    <% if (step.reviewed_at) { %>
+                      <span class="text-muted text-sm" style="margin-left: 0.5rem;">
+                        <%= new Date(step.reviewed_at).toLocaleDateString('ru-RU') %>
+                      </span>
+                    <% } %>
+                  <% } %>
+                </div>
+                
+                <% if (step.file_url) { %>
+                  <div style="margin-top: 0.5rem;">
+                    <a href="<%= step.file_url %>" target="_blank" class="text-sm">📎 Файл ответа</a>
+                  </div>
+                <% } %>
+                
+                <% if (step.admin_comment) { %>
+                  <div class="comment-box" style="margin-top: 0.75rem; padding: 0.75rem;">
+                    <div class="text-sm"><%= step.admin_comment %></div>
+                  </div>
+                <% } %>
+              </div>
+              
+              <div class="flex gap-1">
+                <% if (step.status === 'pending' && step.progress_id) { %>
+                  <a href="/admin/submissions/<%= step.progress_id %>" class="btn btn-primary btn-sm">
+                    Проверить
+                  </a>
+                <% } %>
+                
+                <% if (step.status === 'locked') { %>
+                  <form method="POST" action="/admin/progress/<%= user.id %>/<%= step.id %>/open">
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                      🔓 Открыть
+                    </button>
+                  </form>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+        
+        <% if (steps.length === 0) { %>
+          <div class="empty-state">
+            <p class="empty-state-text">В этом курсе нет степов</p>
+          </div>
+        <% } %>
+      </div>
+      
+      <div style="margin-top: 1.5rem;">
+        <a href="/admin/progress?course=<%= course.id %>" class="btn btn-secondary">
+          ← Назад к списку
+        </a>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

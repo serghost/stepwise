@@ -1,0 +1,35 @@
+<aside class="admin-sidebar">
+  <div class="admin-brand">
+    <a href="/admin" class="nav-brand">
+      📚 <span>Stepwise</span>
+    </a>
+  </div>
+  
+  <nav class="admin-nav">
+    <a href="/admin" class="admin-nav-link <%= active === 'dashboard' ? 'active' : '' %>">
+      📊 Главная
+    </a>
+    <a href="/admin/users" class="admin-nav-link <%= active === 'users' ? 'active' : '' %>">
+      👥 Ученики
+    </a>
+    <a href="/admin/courses" class="admin-nav-link <%= active === 'courses' ? 'active' : '' %>">
+      📚 Курсы
+    </a>
+    <a href="/admin/enrollments" class="admin-nav-link <%= active === 'enrollments' ? 'active' : '' %>">
+      🎓 Назначения
+    </a>
+    <a href="/admin/submissions" class="admin-nav-link <%= active === 'submissions' ? 'active' : '' %>">
+      📝 Проверка
+    </a>
+    <a href="/admin/progress" class="admin-nav-link <%= active === 'progress' ? 'active' : '' %>">
+      📈 Прогресс
+    </a>
+  </nav>
+  
+  <div style="margin-top: auto; padding-top: 2rem; border-top: 1px solid var(--border);">
+    <div class="text-muted text-sm" style="margin-bottom: 0.5rem;"><%= user.name %></div>
+    <a href="/logout" class="admin-nav-link">
+      🚪 Выйти
+    </a>
+  </div>
+</aside>

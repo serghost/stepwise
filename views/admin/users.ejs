@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ученики | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('partials/sidebar', { active: 'users' }) %>
+    
+    <main class="admin-main">
+      <div class="page-header flex justify-between items-center">
+        <div>
+          <h1 class="page-title">Ученики</h1>
+          <p class="page-subtitle">Управление учениками и приглашениями</p>
+        </div>
+      </div>
+      
+      <% if (typeof query !== 'undefined' && query.success === 'invited') { %>
+        <div class="alert alert-success">✅ Приглашение создано!</div>
+      <% } %>
+      
+      <% if (typeof query !== 'undefined' && query.error === 'exists') { %>
+        <div class="alert alert-error">❌ Пользователь с таким email уже существует</div>
+      <% } %>
+      
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title" style="margin-bottom: 1rem;">Пригласить ученика</h3>
+        <form method="POST" action="/admin/users/invite" class="flex gap-2" style="align-items: flex-end;">
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label class="form-label">Email ученика</label>
+            <input type="email" name="email" class="form-input" required placeholder="student@example.com">
+          </div>
+          <button type="submit" class="btn btn-primary">Пригласить</button>
+        </form>
+      </div>
+      
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom: 1rem;">Список учеников</h3>
+        
+        <% if (users.length === 0) { %>
+          <div class="empty-state">
+            <p class="empty-state-text">Пока нет учеников</p>
+          </div>
+        <% } else { %>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Имя</th>
+                  <th>Email</th>
+                  <th>Курсов</th>
+                  <th>Статус</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% users.forEach(u => { %>
+                  <tr>
+                    <td><strong><%= u.name || '—' %></strong></td>
+                    <td><%= u.email %></td>
+                    <td><%= u.courses_count %></td>
+                    <td>
+                      <% if (u.invite_code) { %>
+                        <span class="badge badge-warning">Ожидает регистрации</span>
+                      <% } else { %>
+                        <span class="badge badge-success">Активен</span>
+                      <% } %>
+                    </td>
+                    <td>
+                      <% if (u.invite_code) { %>
+                        <div class="invite-box" style="padding: 0.5rem 0.75rem;">
+                          <div>
+                            <div class="text-sm text-muted">Ссылка для регистрации:</div>
+                            <code class="invite-code" style="font-size: 0.8rem;">/register/<%= u.invite_code %></code>
+                          </div>
+                        </div>
+                      <% } %>
+                      <form method="POST" action="/admin/users/<%= u.id %>/delete" style="display: inline;" onsubmit="return confirm('Удалить ученика?')">
+                        <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

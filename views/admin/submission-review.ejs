@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Проверка задания | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('partials/sidebar', { active: 'submissions' }) %>
+    
+    <main class="admin-main">
+      <div class="breadcrumb">
+        <a href="/admin/submissions">Проверка заданий</a>
+        <span class="breadcrumb-sep">→</span>
+        <span><%= submission.user_name %></span>
+      </div>
+      
+      <div class="page-header">
+        <h1 class="page-title">Проверка задания</h1>
+      </div>
+      
+      <div class="grid grid-2" style="gap: 2rem;">
+        <div>
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 1rem;">Информация</h3>
+            <table style="width: 100%;">
+              <tr>
+                <td class="text-muted" style="padding: 0.5rem 0;">Ученик:</td>
+                <td style="padding: 0.5rem 0;"><strong><%= submission.user_name %></strong></td>
+              </tr>
+              <tr>
+                <td class="text-muted" style="padding: 0.5rem 0;">Email:</td>
+                <td style="padding: 0.5rem 0;"><%= submission.email %></td>
+              </tr>
+              <tr>
+                <td class="text-muted" style="padding: 0.5rem 0;">Курс:</td>
+                <td style="padding: 0.5rem 0;"><%= submission.course_title %></td>
+              </tr>
+              <tr>
+                <td class="text-muted" style="padding: 0.5rem 0;">Степ:</td>
+                <td style="padding: 0.5rem 0;"><%= submission.step_title %> (#<%= submission.step_position %>)</td>
+              </tr>
+              <tr>
+                <td class="text-muted" style="padding: 0.5rem 0;">Отправлено:</td>
+                <td style="padding: 0.5rem 0;"><%= new Date(submission.submitted_at).toLocaleString('ru-RU') %></td>
+              </tr>
+            </table>
+          </div>
+          
+          <% if (submission.step_content) { %>
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <h3 style="margin-bottom: 1rem;">Задание</h3>
+              <div class="text-muted">
+                <%- submission.step_content.replace(/\n/g, '<br>') %>
+              </div>
+            </div>
+          <% } %>
+          
+          <div class="card">
+            <h3 style="margin-bottom: 1rem;">Решение</h3>
+            
+            <% if (submission.file_url) { %>
+              <% if (submission.file_url.match(/\.(mp4|webm|mov)$/i)) { %>
+                <div class="video-container">
+                  <video controls style="width: 100%;">
+                    <source src="<%= submission.file_url %>" type="video/mp4">
+                  </video>
+                </div>
+              <% } else { %>
+                <a href="<%= submission.file_url %>" target="_blank" class="btn btn-secondary">
+                  📎 Скачать файл
+                </a>
+              <% } %>
+            <% } else { %>
+              <p class="text-muted">Файл не прикреплён</p>
+            <% } %>
+          </div>
+        </div>
+        
+        <div>
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 1rem; color: var(--success);">✅ Принять</h3>
+            <p class="text-muted" style="margin-bottom: 1rem;">
+              Задание выполнено хорошо. Ученику откроется следующий степ.
+            </p>
+            <form method="POST" action="/admin/submissions/<%= submission.id %>/approve">
+              <button type="submit" class="btn btn-success" style="width: 100%;">
+                Принять и открыть следующий степ
+              </button>
+            </form>
+          </div>
+          
+          <div class="card">
+            <h3 style="margin-bottom: 1rem; color: var(--error);">❌ Отклонить</h3>
+            <p class="text-muted" style="margin-bottom: 1rem;">
+              Задание требует доработки. Напишите комментарий для ученика.
+            </p>
+            <form method="POST" action="/admin/submissions/<%= submission.id %>/reject">
+              <div class="form-group">
+                <textarea name="comment" class="form-textarea" rows="4" required placeholder="Опишите, что нужно исправить..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-danger" style="width: 100%;">
+                Отклонить с комментарием
+              </button>
+            </form>
+          </div>
+          
+          <div style="margin-top: 1.5rem;">
+            <a href="/admin/submissions" class="btn btn-secondary" style="width: 100%;">
+              ← Назад к списку
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои курсы | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="page">
+    <nav class="nav">
+      <div class="container nav-inner">
+        <a href="/dashboard" class="nav-brand">
+          📚 <span>Stepwise</span>
+        </a>
+        <div class="nav-user">
+          <span class="nav-user-name"><%= user.name %></span>
+          <a href="/logout" class="btn btn-secondary btn-sm">Выйти</a>
+        </div>
+      </div>
+    </nav>
+    
+    <main class="main">
+      <div class="container">
+        <div class="page-header">
+          <h1 class="page-title">Мои курсы</h1>
+          <p class="page-subtitle">Добро пожаловать, <%= user.name %>!</p>
+        </div>
+        
+        <% if (enrollments.length === 0) { %>
+          <div class="empty-state">
+            <div class="empty-state-icon">📖</div>
+            <p class="empty-state-text">У вас пока нет назначенных курсов.<br>Преподаватель добавит вас на курс, когда будет готов.</p>
+          </div>
+        <% } else { %>
+          <div class="grid grid-3">
+            <% enrollments.forEach(course => { %>
+              <a href="/course/<%= course.id %>" class="course-card">
+                <div class="course-image">
+                  <% if (course.image_url) { %>
+                    <img src="<%= course.image_url %>" alt="<%= course.title %>">
+                  <% } else { %>
+                    <span class="course-image-placeholder">📚</span>
+                  <% } %>
+                </div>
+                <div class="course-body">
+                  <h3 class="course-title"><%= course.title %></h3>
+                  <p class="course-meta">
+                    <%= course.completed_steps %> из <%= course.total_steps %> степов
+                  </p>
+                  <div class="course-progress">
+                    <div class="course-progress-text">
+                      <span>Прогресс</span>
+                      <span><%= course.total_steps > 0 ? Math.round(course.completed_steps / course.total_steps * 100) : 0 %>%</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar" style="width: <%= course.total_steps > 0 ? (course.completed_steps / course.total_steps * 100) : 0 %>%"></div>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

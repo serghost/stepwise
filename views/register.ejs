@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Регистрация | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <h1>📚 <span>Stepwise</span></h1>
+      </div>
+      
+      <h2 class="auth-title">Создание аккаунта</h2>
+      
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+      
+      <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+        Вы приглашены на платформу.<br>
+        Email: <strong><%= invite.email %></strong>
+      </div>
+      
+      <form method="POST" action="/register/<%= invite.invite_code %>">
+        <div class="form-group">
+          <label class="form-label" for="name">Ваше имя</label>
+          <input type="text" id="name" name="name" class="form-input" required autofocus placeholder="Как к вам обращаться">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="password">Пароль</label>
+          <input type="password" id="password" name="password" class="form-input" required minlength="6">
+          <p class="form-help">Минимум 6 символов</p>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="password_confirm">Подтвердите пароль</label>
+          <input type="password" id="password_confirm" name="password_confirm" class="form-input" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          Создать аккаунт
+        </button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Прогресс учеников | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('partials/sidebar', { active: 'progress' }) %>
+    
+    <main class="admin-main">
+      <div class="page-header">
+        <h1 class="page-title">Прогресс учеников</h1>
+        <p class="page-subtitle">Отслеживание выполнения курсов</p>
+      </div>
+      
+      <div class="card" style="margin-bottom: 2rem;">
+        <form method="GET" action="/admin/progress" class="flex gap-2" style="align-items: flex-end;">
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label class="form-label">Выберите курс</label>
+            <select name="course" class="form-select" onchange="this.form.submit()">
+              <option value="">— Выберите курс —</option>
+              <% courses.forEach(c => { %>
+                <option value="<%= c.id %>" <%= selectedCourse && selectedCourse.id === c.id ? 'selected' : '' %>>
+                  <%= c.title %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+        </form>
+      </div>
+      
+      <% if (selectedCourse) { %>
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom: 1rem;">
+            Прогресс по курсу: <%= selectedCourse.title %>
+          </h3>
+          
+          <% if (progress.length === 0) { %>
+            <div class="empty-state">
+              <p class="empty-state-text">На этот курс пока никто не назначен</p>
+            </div>
+          <% } else { %>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Ученик</th>
+                    <th>Прогресс</th>
+                    <th>Статус</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% progress.forEach(p => { %>
+                    <tr>
+                      <td>
+                        <strong><%= p.name %></strong><br>
+                        <span class="text-muted text-sm"><%= p.email %></span>
+                      </td>
+                      <td style="width: 200px;">
+                        <div class="course-progress-text">
+                          <span><%= p.completed_steps %> / <%= p.total_steps %></span>
+                          <span><%= p.total_steps > 0 ? Math.round(p.completed_steps / p.total_steps * 100) : 0 %>%</span>
+                        </div>
+                        <div class="progress">
+                          <div class="progress-bar" style="width: <%= p.total_steps > 0 ? (p.completed_steps / p.total_steps * 100) : 0 %>%"></div>
+                        </div>
+                      </td>
+                      <td>
+                        <% if (p.pending_steps > 0) { %>
+                          <span class="badge badge-warning"><%= p.pending_steps %> на проверке</span>
+                        <% } else if (p.completed_steps === p.total_steps && p.total_steps > 0) { %>
+                          <span class="badge badge-success">Завершён</span>
+                        <% } else { %>
+                          <span class="badge badge-info">В процессе</span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <a href="/admin/progress/<%= p.user_id %>/<%= selectedCourse.id %>" class="btn btn-secondary btn-sm">
+                          Подробнее
+                        </a>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+      <% } else { %>
+        <div class="card">
+          <div class="empty-state">
+            <div class="empty-state-icon">📊</div>
+            <p class="empty-state-text">Выберите курс для просмотра прогресса</p>
+          </div>
+        </div>
+      <% } %>
+    </main>
+  </div>
+</body>
+</html>

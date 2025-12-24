@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Редактирование степа | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('partials/sidebar', { active: 'courses' }) %>
+    
+    <main class="admin-main">
+      <div class="breadcrumb">
+        <a href="/admin/courses">Курсы</a>
+        <span class="breadcrumb-sep">→</span>
+        <a href="/admin/courses/<%= course.id %>/steps"><%= course.title %></a>
+        <span class="breadcrumb-sep">→</span>
+        <span>Редактирование</span>
+      </div>
+      
+      <div class="page-header">
+        <h1 class="page-title">Редактирование степа</h1>
+      </div>
+      
+      <div class="card" style="max-width: 700px;">
+        <form method="POST" action="/admin/steps/<%= step.id %>" enctype="multipart/form-data">
+          <div class="form-group">
+            <label class="form-label">Название степа</label>
+            <input type="text" name="title" class="form-input" required value="<%= step.title %>">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Содержимое / Задание</label>
+            <textarea name="content" class="form-textarea" rows="10"><%= step.content || '' %></textarea>
+            <p class="form-help">Опишите задание. Поддерживаются переносы строк.</p>
+          </div>
+          
+          <% if (step.video_url) { %>
+            <div class="form-group">
+              <label class="form-label">Текущее видео</label>
+              <div class="video-container" style="max-width: 400px;">
+                <video controls style="width: 100%;">
+                  <source src="<%= step.video_url %>" type="video/mp4">
+                </video>
+              </div>
+              <label style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; cursor: pointer;">
+                <input type="checkbox" name="remove_video" value="1">
+                <span class="text-sm">Удалить видео</span>
+              </label>
+            </div>
+          <% } %>
+          
+          <div class="form-group">
+            <label class="form-label"><%= step.video_url ? 'Заменить видео' : 'Добавить видео' %></label>
+            <input type="file" name="video" class="form-input" accept=".mp4,.mov,.webm,.avi">
+            <p class="form-help">MP4, MOV, WebM — до 500 МБ</p>
+          </div>
+          
+          <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a href="/admin/courses/<%= course.id %>/steps" class="btn btn-secondary">Отмена</a>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

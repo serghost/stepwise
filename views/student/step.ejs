@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= step.title %> | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="page">
+    <nav class="nav">
+      <div class="container nav-inner">
+        <a href="/dashboard" class="nav-brand">
+          📚 <span>Stepwise</span>
+        </a>
+        <div class="nav-user">
+          <span class="nav-user-name"><%= user.name %></span>
+          <a href="/logout" class="btn btn-secondary btn-sm">Выйти</a>
+        </div>
+      </div>
+    </nav>
+    
+    <main class="main">
+      <div class="container" style="max-width: 800px;">
+        <div class="breadcrumb">
+          <a href="/dashboard">Мои курсы</a>
+          <span class="breadcrumb-sep">→</span>
+          <a href="/course/<%= course.id %>"><%= course.title %></a>
+          <span class="breadcrumb-sep">→</span>
+          <span><%= step.title %></span>
+        </div>
+        
+        <div class="page-header">
+          <h1 class="page-title"><%= step.title %></h1>
+          <p class="page-subtitle">Степ <%= step.position %></p>
+        </div>
+        
+        <% if (typeof query !== 'undefined' && query.success === 'submitted') { %>
+          <div class="alert alert-success">
+            ✅ Задание отправлено на проверку! Преподаватель скоро его проверит.
+          </div>
+        <% } %>
+        
+        <% if (typeof query !== 'undefined' && query.error === 'no_file') { %>
+          <div class="alert alert-error">
+            ❌ Пожалуйста, прикрепите файл.
+          </div>
+        <% } %>
+        
+        <% if (step.content) { %>
+          <div class="step-content-body">
+            <%- step.content.replace(/\n/g, '<br>') %>
+          </div>
+        <% } %>
+        
+        <% if (step.video_url) { %>
+          <div class="card" style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 1rem;">📹 Видео урока</h3>
+            <div class="video-container">
+              <video controls style="width: 100%;">
+                <source src="<%= step.video_url %>" type="video/mp4">
+              </video>
+            </div>
+          </div>
+        <% } %>
+        
+        <% if (progress.status === 'rejected' && progress.admin_comment) { %>
+          <div class="comment-box">
+            <div class="comment-box-title">
+              ⚠️ Комментарий преподавателя
+            </div>
+            <div class="comment-box-text">
+              <%= progress.admin_comment %>
+            </div>
+          </div>
+        <% } %>
+        
+        <% if (progress.status === 'completed') { %>
+          <div class="alert alert-success">
+            ✅ Этот степ выполнен! Вы можете перейти к следующему.
+          </div>
+          
+          <% if (progress.file_url) { %>
+            <div class="card">
+              <h3 style="margin-bottom: 1rem;">Ваш ответ</h3>
+              <% if (progress.file_url.match(/\.(mp4|webm|mov)$/i)) { %>
+                <div class="video-container">
+                  <video controls>
+                    <source src="<%= progress.file_url %>" type="video/mp4">
+                  </video>
+                </div>
+              <% } else { %>
+                <a href="<%= progress.file_url %>" target="_blank" class="btn btn-secondary">
+                  📎 Скачать файл
+                </a>
+              <% } %>
+            </div>
+          <% } %>
+          
+          <div style="margin-top: 1.5rem;">
+            <a href="/course/<%= course.id %>" class="btn btn-primary">
+              ← Вернуться к курсу
+            </a>
+          </div>
+        <% } else if (progress.status === 'pending') { %>
+          <div class="alert alert-warning">
+            ⏳ Ваше задание отправлено и ожидает проверки преподавателем.
+          </div>
+          
+          <% if (progress.file_url) { %>
+            <div class="card">
+              <h3 style="margin-bottom: 1rem;">Ваш ответ</h3>
+              <% if (progress.file_url.match(/\.(mp4|webm|mov)$/i)) { %>
+                <div class="video-container">
+                  <video controls>
+                    <source src="<%= progress.file_url %>" type="video/mp4">
+                  </video>
+                </div>
+              <% } else { %>
+                <a href="<%= progress.file_url %>" target="_blank" class="btn btn-secondary">
+                  📎 Скачать файл
+                </a>
+              <% } %>
+            </div>
+          <% } %>
+          
+          <div style="margin-top: 1.5rem;">
+            <a href="/course/<%= course.id %>" class="btn btn-secondary">
+              ← Вернуться к курсу
+            </a>
+          </div>
+        <% } else { %>
+          <div class="card">
+            <h3 style="margin-bottom: 1rem;">📤 Загрузка задания</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+              Запишите видео выполнения задания или приложите файл с результатом.
+            </p>
+            
+            <form method="POST" action="/step/<%= step.id %>/submit" enctype="multipart/form-data" id="uploadForm">
+              <label class="file-upload" for="fileInput" id="fileUploadLabel">
+                <div class="file-upload-icon">📹</div>
+                <div class="file-upload-text" id="fileName">Нажмите, чтобы выбрать файл</div>
+                <div class="file-upload-hint">MP4, MOV, AVI, WebM, PDF, DOC, ZIP — до 500 МБ</div>
+                <input type="file" id="fileInput" name="file" accept=".mp4,.mov,.avi,.webm,.mkv,.pdf,.doc,.docx,.zip" required>
+              </label>
+              
+              <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                  Отправить на проверку
+                </button>
+                <a href="/course/<%= course.id %>" class="btn btn-secondary">
+                  Отмена
+                </a>
+              </div>
+            </form>
+          </div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const fileInput = document.getElementById('fileInput');
+      const fileName = document.getElementById('fileName');
+      const submitBtn = document.getElementById('submitBtn');
+      const fileUploadLabel = document.getElementById('fileUploadLabel');
+      const uploadForm = document.getElementById('uploadForm');
+      
+      if (fileInput) {
+        fileInput.addEventListener('change', function() {
+          if (this.files.length > 0) {
+            const file = this.files[0];
+            const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+            fileName.textContent = `✓ ${file.name} (${sizeMB} МБ)`;
+            fileUploadLabel.classList.add('has-file');
+          } else {
+            fileName.textContent = 'Нажмите, чтобы выбрать файл';
+            fileUploadLabel.classList.remove('has-file');
+          }
+        });
+      }
+      
+      if (uploadForm) {
+        uploadForm.addEventListener('submit', function() {
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Загрузка...';
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

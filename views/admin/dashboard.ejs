@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('partials/sidebar', { active: 'dashboard' }) %>
+    
+    <main class="admin-main">
+      <div class="page-header">
+        <h1 class="page-title">Панель управления</h1>
+        <p class="page-subtitle">Добро пожаловать, <%= user.name %>!</p>
+      </div>
+      
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-value"><%= stats.users %></div>
+          <div class="stat-label">Учеников</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value"><%= stats.courses %></div>
+          <div class="stat-label">Курсов</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: var(--warning);"><%= stats.pending %></div>
+          <div class="stat-label">На проверке</div>
+        </div>
+      </div>
+      
+      <% if (pendingSubmissions.length > 0) { %>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Задания на проверке</h3>
+            <a href="/admin/submissions" class="btn btn-secondary btn-sm">Все задания</a>
+          </div>
+          
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Ученик</th>
+                  <th>Курс / Степ</th>
+                  <th>Отправлено</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% pendingSubmissions.forEach(sub => { %>
+                  <tr>
+                    <td>
+                      <strong><%= sub.user_name %></strong><br>
+                      <span class="text-muted text-sm"><%= sub.email %></span>
+                    </td>
+                    <td>
+                      <%= sub.course_title %><br>
+                      <span class="text-muted text-sm"><%= sub.step_title %></span>
+                    </td>
+                    <td class="text-muted text-sm">
+                      <%= new Date(sub.submitted_at).toLocaleDateString('ru-RU') %>
+                    </td>
+                    <td>
+                      <a href="/admin/submissions/<%= sub.id %>" class="btn btn-primary btn-sm">
+                        Проверить
+                      </a>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="card">
+          <div class="empty-state">
+            <div class="empty-state-icon">✅</div>
+            <p class="empty-state-text">Нет заданий на проверке</p>
+          </div>
+        </div>
+      <% } %>
+    </main>
+  </div>
+</body>
+</html>

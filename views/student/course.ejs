@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= course.title %> | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="page">
+    <nav class="nav">
+      <div class="container nav-inner">
+        <a href="/dashboard" class="nav-brand">
+          📚 <span>Stepwise</span>
+        </a>
+        <div class="nav-user">
+          <span class="nav-user-name"><%= user.name %></span>
+          <a href="/logout" class="btn btn-secondary btn-sm">Выйти</a>
+        </div>
+      </div>
+    </nav>
+    
+    <main class="main">
+      <div class="container">
+        <div class="breadcrumb">
+          <a href="/dashboard">Мои курсы</a>
+          <span class="breadcrumb-sep">→</span>
+          <span><%= course.title %></span>
+        </div>
+        
+        <div class="page-header">
+          <h1 class="page-title"><%= course.title %></h1>
+          <% if (course.description) { %>
+            <p class="page-subtitle"><%= course.description %></p>
+          <% } %>
+        </div>
+        
+        <div class="steps-list">
+          <% steps.forEach((step, index) => { %>
+            <% 
+              const isClickable = step.status !== 'locked';
+              const statusClass = step.status;
+            %>
+            <% if (isClickable) { %>
+              <a href="/step/<%= step.id %>" class="step-item <%= statusClass %> clickable">
+            <% } else { %>
+              <div class="step-item <%= statusClass %>">
+            <% } %>
+              <div class="step-number">
+                <% if (step.status === 'completed') { %>✓<% } else { %><%= index + 1 %><% } %>
+              </div>
+              <div class="step-content">
+                <div class="step-title"><%= step.title %></div>
+                <div class="step-status">
+                  <% if (step.status === 'locked') { %>
+                    🔒 Заблокирован
+                  <% } else if (step.status === 'open') { %>
+                    📝 Доступен для выполнения
+                  <% } else if (step.status === 'pending') { %>
+                    ⏳ На проверке
+                  <% } else if (step.status === 'rejected') { %>
+                    ❌ Требуется доработка
+                  <% } else if (step.status === 'completed') { %>
+                    ✅ Выполнен
+                  <% } %>
+                </div>
+              </div>
+              <% if (isClickable) { %>
+                <span style="color: var(--text-muted);">→</span>
+              <% } %>
+            <% if (isClickable) { %>
+              </a>
+            <% } else { %>
+              </div>
+            <% } %>
+          <% }) %>
+        </div>
+        
+        <% if (steps.length === 0) { %>
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <p class="empty-state-text">В этом курсе пока нет степов.<br>Преподаватель скоро добавит материалы.</p>
+          </div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

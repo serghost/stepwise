@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Степы: <%= course.title %> | Stepwise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <%- include('partials/sidebar', { active: 'courses' }) %>
+    
+    <main class="admin-main">
+      <div class="breadcrumb">
+        <a href="/admin/courses">Курсы</a>
+        <span class="breadcrumb-sep">→</span>
+        <span><%= course.title %></span>
+      </div>
+      
+      <div class="page-header">
+        <h1 class="page-title">Степы: <%= course.title %></h1>
+        <p class="page-subtitle">Управление содержимым курса</p>
+      </div>
+      
+      <div class="card" style="margin-bottom: 2rem;">
+        <h3 class="card-title" style="margin-bottom: 1rem;">Добавить степ</h3>
+        <form method="POST" action="/admin/courses/<%= course.id %>/steps" enctype="multipart/form-data">
+          <div class="form-group">
+            <label class="form-label">Название степа</label>
+            <input type="text" name="title" class="form-input" required placeholder="Урок 1: Введение">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Содержимое / Задание</label>
+            <textarea name="content" class="form-textarea" rows="5" placeholder="Опишите задание, которое нужно выполнить..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Видео урока (необязательно)</label>
+            <input type="file" name="video" class="form-input" accept=".mp4,.mov,.webm,.avi">
+            <p class="form-help">MP4, MOV, WebM — до 500 МБ</p>
+          </div>
+          <button type="submit" class="btn btn-primary">Добавить степ</button>
+        </form>
+      </div>
+      
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom: 1rem;">Список степов</h3>
+        
+        <% if (steps.length === 0) { %>
+          <div class="empty-state">
+            <p class="empty-state-text">В этом курсе пока нет степов</p>
+          </div>
+        <% } else { %>
+          <div class="steps-list">
+            <% steps.forEach((step, index) => { %>
+              <div class="step-item">
+                <div class="step-number"><%= step.position %></div>
+                <div class="step-content" style="flex: 1;">
+                  <div class="step-title">
+                    <%= step.title %>
+                    <% if (step.video_url) { %>
+                      <span class="badge badge-info" style="margin-left: 0.5rem;">🎬 видео</span>
+                    <% } %>
+                  </div>
+                  <% if (step.content) { %>
+                    <div class="text-muted text-sm" style="margin-top: 0.25rem;">
+                      <%= step.content.substring(0, 100) %><%= step.content.length > 100 ? '...' : '' %>
+                    </div>
+                  <% } %>
+                </div>
+                <div class="flex gap-1">
+                  <form method="POST" action="/admin/steps/<%= step.id %>/move" style="display: inline;">
+                    <input type="hidden" name="direction" value="up">
+                    <button type="submit" class="btn btn-secondary btn-icon" <%= index === 0 ? 'disabled' : '' %>>↑</button>
+                  </form>
+                  <form method="POST" action="/admin/steps/<%= step.id %>/move" style="display: inline;">
+                    <input type="hidden" name="direction" value="down">
+                    <button type="submit" class="btn btn-secondary btn-icon" <%= index === steps.length - 1 ? 'disabled' : '' %>>↓</button>
+                  </form>
+                  <a href="/admin/steps/<%= step.id %>/edit" class="btn btn-secondary btn-sm">✏️</a>
+                  <form method="POST" action="/admin/steps/<%= step.id %>/delete" style="display: inline;" onsubmit="return confirm('Удалить этот степ?')">
+                    <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                  </form>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
