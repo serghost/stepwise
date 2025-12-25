@@ -83,7 +83,9 @@ const upload = multer({
 
 // Database
 let db;
-const DB_FILE = 'stepwise.db';
+const DB_FILE = process.env.RAILWAY_VOLUME_MOUNT_PATH
+  ? `${process.env.RAILWAY_VOLUME_MOUNT_PATH}/stepwise.db`
+  : 'stepwise.db';
 
 async function initDb() {
   const SQL = await initSqlJs();
