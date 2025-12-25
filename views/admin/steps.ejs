@@ -32,9 +32,47 @@
             <label class="form-label">Название степа</label>
             <input type="text" name="title" class="form-input" required placeholder="Урок 1: Введение">
           </div>
+
+          <div class="form-group">
+            <label class="form-label">Тип степа</label>
+            <div class="flex gap-2">
+              <label class="radio-card">
+                <input type="radio" name="step_type" value="info" onchange="toggleAnswerConfig(this)">
+                <span class="radio-card-content">
+                  <span class="radio-card-icon">📖</span>
+                  <span class="radio-card-title">Инфо</span>
+                  <span class="radio-card-desc">Просто материал, ответ не требуется</span>
+                </span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="step_type" value="task" checked onchange="toggleAnswerConfig(this)">
+                <span class="radio-card-content">
+                  <span class="radio-card-icon">✏️</span>
+                  <span class="radio-card-title">Задание</span>
+                  <span class="radio-card-desc">Требуется ответ от ученика</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div id="answerConfig" class="form-group">
+            <label class="form-label">Тип ответа</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item">
+                <input type="checkbox" name="answer_text" value="1">
+                <span>Текстовый ответ</span>
+              </label>
+              <label class="checkbox-item">
+                <input type="checkbox" name="answer_file" value="1" checked>
+                <span>Файл / видео</span>
+              </label>
+            </div>
+            <p class="form-help">Выберите один или оба варианта</p>
+          </div>
+
           <div class="form-group">
             <label class="form-label">Содержимое / Задание</label>
-            <textarea name="content" class="form-textarea" rows="5" placeholder="Опишите задание, которое нужно выполнить..."></textarea>
+            <textarea name="content" class="form-textarea" rows="5" placeholder="Опишите материал или задание..."></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Видео урока (необязательно)</label>
@@ -60,8 +98,13 @@
                 <div class="step-content" style="flex: 1;">
                   <div class="step-title">
                     <%= step.title %>
+                    <% if (step.step_type === 'info') { %>
+                      <span class="badge badge-secondary" style="margin-left: 0.5rem;">📖 инфо</span>
+                    <% } else { %>
+                      <span class="badge badge-primary" style="margin-left: 0.5rem;">✏️ задание</span>
+                    <% } %>
                     <% if (step.video_url) { %>
-                      <span class="badge badge-info" style="margin-left: 0.5rem;">🎬 видео</span>
+                      <span class="badge badge-info" style="margin-left: 0.25rem;">🎬</span>
                     <% } %>
                   </div>
                   <% if (step.content) { %>
@@ -91,5 +134,11 @@
       </div>
     </main>
   </div>
+<script>
+function toggleAnswerConfig(radio) {
+  const config = document.getElementById('answerConfig');
+  config.style.display = radio.value === 'task' ? 'block' : 'none';
+}
+</script>
 </body>
 </html>

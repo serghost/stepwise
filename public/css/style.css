@@ -888,21 +888,100 @@ a:hover {
   .admin-layout {
     flex-direction: column;
   }
-  
+
   .admin-sidebar {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border);
     padding: 1rem;
   }
-  
+
   .admin-nav {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
-  
+
   .admin-main {
     padding: 1.5rem;
   }
+}
+
+/* Radio Cards */
+.radio-card {
+  display: block;
+  cursor: pointer;
+  flex: 1;
+}
+
+.radio-card input {
+  display: none;
+}
+
+.radio-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.radio-card input:checked + .radio-card-content {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.radio-card:hover .radio-card-content {
+  border-color: var(--border-light);
+}
+
+.radio-card-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.radio-card-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.radio-card-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Checkbox Group */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.checkbox-item:hover {
+  background: var(--bg-hover);
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+/* Background tertiary */
+:root {
+  --bg-tertiary: #22222e;
 }

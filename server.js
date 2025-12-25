@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
@@ -6,9 +7,56 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const initSqlJs = require('sql.js');
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// R2 Configuration (set via environment variables)
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+const R2_ACCESS_KEY = process.env.R2_ACCESS_KEY;
+const R2_SECRET_KEY = process.env.R2_SECRET_KEY;
+const R2_BUCKET = process.env.R2_BUCKET || 'stepwise-videos';
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: R2_ACCESS_KEY,
+    secretAccessKey: R2_SECRET_KEY,
+  },
+});
+
+// Upload file to R2
+async function uploadToR2(file) {
+  const ext = path.extname(file.originalname);
+  const key = `${Date.now()}-${uuidv4()}${ext}`;
+
+  await s3Client.send(new PutObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+    Body: file.buffer,
+    ContentType: file.mimetype,
+  }));
+
+  return `${R2_PUBLIC_URL}/${key}`;
+}
+
+// Delete file from R2
+async function deleteFromR2(url) {
+  if (!url || !url.startsWith(R2_PUBLIC_URL)) return;
+
+  const key = url.replace(`${R2_PUBLIC_URL}/`, '');
+  try {
+    await s3Client.send(new DeleteObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: key,
+    }));
+  } catch (err) {
+    console.error('Failed to delete from R2:', err.message);
+  }
+}
 
 // Middleware
 app.set('view engine', 'ejs');
@@ -22,21 +70,9 @@ app.use(session({
   cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days
 }));
 
-// File upload config
-const uploadsDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}-${uuidv4()}${ext}`);
-  }
-});
-const upload = multer({ 
-  storage,
+// File upload config - use memory storage for R2 upload
+const upload = multer({
+  storage: multer.memoryStorage(),
   limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
   fileFilter: (req, file, cb) => {
     const allowed = /mp4|mov|avi|webm|mkv|pdf|doc|docx|zip/;
@@ -90,9 +126,19 @@ async function initDb() {
       content TEXT,
       video_url TEXT,
       position INTEGER NOT NULL,
+      step_type TEXT DEFAULT 'task',
+      answer_type TEXT DEFAULT 'file',
       FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
     )
   `);
+
+  // Migration: add new columns if they don't exist
+  try {
+    db.run("ALTER TABLE steps ADD COLUMN step_type TEXT DEFAULT 'task'");
+  } catch (e) {}
+  try {
+    db.run("ALTER TABLE steps ADD COLUMN answer_type TEXT DEFAULT 'file'");
+  } catch (e) {}
   
   db.run(`
     CREATE TABLE IF NOT EXISTS enrollments (
@@ -113,6 +159,7 @@ async function initDb() {
       step_id INTEGER NOT NULL,
       status TEXT DEFAULT 'locked',
       file_url TEXT,
+      text_answer TEXT,
       admin_comment TEXT,
       submitted_at TEXT,
       reviewed_at TEXT,
@@ -121,7 +168,12 @@ async function initDb() {
       FOREIGN KEY (step_id) REFERENCES steps(id) ON DELETE CASCADE
     )
   `);
-  
+
+  // Migration: add text_answer column if it doesn't exist
+  try {
+    db.run("ALTER TABLE step_progress ADD COLUMN text_answer TEXT");
+  } catch (e) {}
+
   // Create default admin if not exists
   const admin = db.exec("SELECT * FROM users WHERE is_admin = 1");
   if (admin.length === 0 || admin[0].values.length === 0) {
@@ -160,6 +212,51 @@ function queryOne(sql, params = []) {
 function run(sql, params = []) {
   db.run(sql, params);
   saveDb();
+}
+
+// Open steps for user: all info steps + first uncompleted task
+// Algorithm: open consecutive steps until we hit an uncompleted task (inclusive)
+function openStepsForUser(userId, courseId) {
+  const steps = query(
+    "SELECT * FROM steps WHERE course_id = ? ORDER BY position",
+    [courseId]
+  );
+
+  for (const step of steps) {
+    const progress = queryOne(
+      "SELECT * FROM step_progress WHERE user_id = ? AND step_id = ?",
+      [userId, step.id]
+    );
+
+    // If step is info - always open it
+    if (step.step_type === 'info') {
+      if (!progress) {
+        run("INSERT INTO step_progress (user_id, step_id, status) VALUES (?, ?, 'completed')",
+          [userId, step.id]);
+      } else if (progress.status === 'locked') {
+        run("UPDATE step_progress SET status = 'completed' WHERE id = ?", [progress.id]);
+      }
+      continue; // Move to next step
+    }
+
+    // If step is task
+    if (!progress) {
+      // Open this task and stop
+      run("INSERT INTO step_progress (user_id, step_id, status) VALUES (?, ?, 'open')",
+        [userId, step.id]);
+      break;
+    } else if (progress.status === 'locked') {
+      // Open this task and stop
+      run("UPDATE step_progress SET status = 'open' WHERE id = ?", [progress.id]);
+      break;
+    } else if (progress.status === 'completed') {
+      // Task completed, continue to next
+      continue;
+    } else {
+      // Task is open/pending/rejected - stop here
+      break;
+    }
+  }
 }
 
 // Auth middleware
@@ -343,38 +440,59 @@ app.get('/step/:id', requireAuth, (req, res) => {
   res.render('student/step', { step, progress, course });
 });
 
-app.post('/step/:id/submit', requireAuth, upload.single('file'), (req, res) => {
+app.post('/step/:id/submit', requireAuth, upload.single('file'), async (req, res) => {
   const stepId = req.params.id;
   const userId = req.session.userId;
-  
-  if (!req.file) {
-    return res.redirect(`/step/${stepId}?error=no_file`);
-  }
-  
+  const { text_answer } = req.body;
+
+  const step = queryOne("SELECT * FROM steps WHERE id = ?", [stepId]);
   const progress = queryOne(
     "SELECT * FROM step_progress WHERE user_id = ? AND step_id = ?",
     [userId, stepId]
   );
-  
+
   if (!progress || progress.status === 'locked') {
     return res.redirect('/dashboard');
   }
-  
-  // Delete old file if exists
-  if (progress.file_url) {
-    const oldPath = path.join(__dirname, 'public', progress.file_url);
-    if (fs.existsSync(oldPath)) {
-      fs.unlinkSync(oldPath);
-    }
+
+  // Check if answer is valid based on answer_type
+  const answerType = step.answer_type || 'file';
+  const needsFile = answerType.includes('file');
+  const needsText = answerType.includes('text');
+
+  if (needsFile && !needsText && !req.file) {
+    return res.redirect(`/step/${stepId}?error=no_file`);
   }
-  
-  run(`
-    UPDATE step_progress 
-    SET file_url = ?, status = 'pending', admin_comment = NULL, submitted_at = CURRENT_TIMESTAMP
-    WHERE user_id = ? AND step_id = ?
-  `, [`/uploads/${req.file.filename}`, userId, stepId]);
-  
-  res.redirect(`/step/${stepId}?success=submitted`);
+  if (needsText && !needsFile && !text_answer?.trim()) {
+    return res.redirect(`/step/${stepId}?error=no_text`);
+  }
+  if (!req.file && !text_answer?.trim()) {
+    return res.redirect(`/step/${stepId}?error=empty`);
+  }
+
+  try {
+    // Delete old file from R2 if exists
+    if (progress.file_url) {
+      await deleteFromR2(progress.file_url);
+    }
+
+    // Upload new file to R2 if provided
+    let fileUrl = null;
+    if (req.file) {
+      fileUrl = await uploadToR2(req.file);
+    }
+
+    run(`
+      UPDATE step_progress
+      SET file_url = ?, text_answer = ?, status = 'pending', admin_comment = NULL, submitted_at = CURRENT_TIMESTAMP
+      WHERE user_id = ? AND step_id = ?
+    `, [fileUrl, text_answer?.trim() || null, userId, stepId]);
+
+    res.redirect(`/step/${stepId}?success=submitted`);
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.redirect(`/step/${stepId}?error=upload_failed`);
+  }
 });
 
 // ================== ADMIN ROUTES ==================
@@ -409,7 +527,8 @@ app.get('/admin/users', requireAdmin, (req, res) => {
     WHERE u.is_admin = 0
     ORDER BY u.created_at DESC
   `);
-  res.render('admin/users', { users });
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  res.render('admin/users', { users, baseUrl });
 });
 
 app.post('/admin/users/invite', requireAdmin, (req, res) => {
@@ -480,19 +599,33 @@ app.get('/admin/courses/:id/steps', requireAdmin, (req, res) => {
   res.render('admin/steps', { course, steps });
 });
 
-app.post('/admin/courses/:id/steps', requireAdmin, upload.single('video'), (req, res) => {
-  const { title, content } = req.body;
+app.post('/admin/courses/:id/steps', requireAdmin, upload.single('video'), async (req, res) => {
+  const { title, content, step_type, answer_text, answer_file } = req.body;
   const courseId = req.params.id;
-  
+
   const maxPos = queryOne("SELECT MAX(position) as max FROM steps WHERE course_id = ?", [courseId]);
   const position = (maxPos?.max || 0) + 1;
-  
-  const videoUrl = req.file ? `/uploads/${req.file.filename}` : null;
-  
-  run("INSERT INTO steps (course_id, title, content, video_url, position) VALUES (?, ?, ?, ?, ?)",
-    [courseId, title, content, videoUrl, position]);
-  
-  res.redirect(`/admin/courses/${courseId}/steps`);
+
+  // Build answer_type from checkboxes
+  let answerType = '';
+  if (step_type === 'task') {
+    const types = [];
+    if (answer_text) types.push('text');
+    if (answer_file) types.push('file');
+    answerType = types.length ? types.join(',') : 'file'; // default to file
+  }
+
+  try {
+    const videoUrl = req.file ? await uploadToR2(req.file) : null;
+
+    run("INSERT INTO steps (course_id, title, content, video_url, position, step_type, answer_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [courseId, title, content, videoUrl, position, step_type || 'task', answerType]);
+
+    res.redirect(`/admin/courses/${courseId}/steps`);
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.redirect(`/admin/courses/${courseId}/steps?error=upload_failed`);
+  }
 });
 
 app.get('/admin/steps/:id/edit', requireAdmin, (req, res) => {
@@ -503,36 +636,53 @@ app.get('/admin/steps/:id/edit', requireAdmin, (req, res) => {
   res.render('admin/step-form', { step, course });
 });
 
-app.post('/admin/steps/:id', requireAdmin, upload.single('video'), (req, res) => {
-  const { title, content, remove_video } = req.body;
+app.post('/admin/steps/:id', requireAdmin, upload.single('video'), async (req, res) => {
+  const { title, content, remove_video, step_type, answer_text, answer_file } = req.body;
   const step = queryOne("SELECT * FROM steps WHERE id = ?", [req.params.id]);
-  
+
   let videoUrl = step.video_url;
-  
-  // Remove old video if requested or if new video uploaded
-  if (remove_video === '1' || req.file) {
-    if (step.video_url) {
-      const oldPath = path.join(__dirname, 'public', step.video_url);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
+
+  // Build answer_type from checkboxes
+  let answerType = '';
+  if (step_type === 'task') {
+    const types = [];
+    if (answer_text) types.push('text');
+    if (answer_file) types.push('file');
+    answerType = types.length ? types.join(',') : 'file';
+  }
+
+  try {
+    // Remove old video from R2 if requested or if new video uploaded
+    if (remove_video === '1' || req.file) {
+      if (step.video_url) {
+        await deleteFromR2(step.video_url);
       }
+      videoUrl = null;
     }
-    videoUrl = null;
+
+    // Upload new video to R2
+    if (req.file) {
+      videoUrl = await uploadToR2(req.file);
+    }
+
+    run("UPDATE steps SET title = ?, content = ?, video_url = ?, step_type = ?, answer_type = ? WHERE id = ?",
+      [title, content, videoUrl, step_type || 'task', answerType, req.params.id]);
+
+    res.redirect(`/admin/courses/${step.course_id}/steps`);
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.redirect(`/admin/steps/${req.params.id}/edit?error=upload_failed`);
   }
-  
-  // Set new video if uploaded
-  if (req.file) {
-    videoUrl = `/uploads/${req.file.filename}`;
-  }
-  
-  run("UPDATE steps SET title = ?, content = ?, video_url = ? WHERE id = ?",
-    [title, content, videoUrl, req.params.id]);
-  
-  res.redirect(`/admin/courses/${step.course_id}/steps`);
 });
 
-app.post('/admin/steps/:id/delete', requireAdmin, (req, res) => {
+app.post('/admin/steps/:id/delete', requireAdmin, async (req, res) => {
   const step = queryOne("SELECT * FROM steps WHERE id = ?", [req.params.id]);
+
+  // Delete video from R2 if exists
+  if (step.video_url) {
+    await deleteFromR2(step.video_url);
+  }
+
   run("DELETE FROM steps WHERE id = ?", [req.params.id]);
   res.redirect(`/admin/courses/${step.course_id}/steps`);
 });
@@ -582,7 +732,7 @@ app.get('/admin/enrollments', requireAdmin, (req, res) => {
 
 app.post('/admin/enrollments', requireAdmin, (req, res) => {
   const { user_id, course_id } = req.body;
-  
+
   // Create enrollment
   try {
     run("INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)", [user_id, course_id]);
@@ -590,18 +740,10 @@ app.post('/admin/enrollments', requireAdmin, (req, res) => {
     // Already enrolled
     return res.redirect('/admin/enrollments?error=exists');
   }
-  
-  // Open first step
-  const firstStep = queryOne(
-    "SELECT * FROM steps WHERE course_id = ? ORDER BY position LIMIT 1",
-    [course_id]
-  );
-  
-  if (firstStep) {
-    run("INSERT INTO step_progress (user_id, step_id, status) VALUES (?, ?, 'open')",
-      [user_id, firstStep.id]);
-  }
-  
+
+  // Open steps using smart algorithm (info auto-complete, first task open)
+  openStepsForUser(user_id, course_id);
+
   res.redirect('/admin/enrollments');
 });
 
@@ -662,34 +804,17 @@ app.post('/admin/submissions/:id/reject', requireAdmin, (req, res) => {
 app.post('/admin/submissions/:id/approve', requireAdmin, (req, res) => {
   const submission = queryOne("SELECT * FROM step_progress WHERE id = ?", [req.params.id]);
   const step = queryOne("SELECT * FROM steps WHERE id = ?", [submission.step_id]);
-  
+
   // Mark as completed
   run(`
-    UPDATE step_progress 
+    UPDATE step_progress
     SET status = 'completed', admin_comment = NULL, reviewed_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `, [req.params.id]);
-  
-  // Open next step
-  const nextStep = queryOne(
-    "SELECT * FROM steps WHERE course_id = ? AND position > ? ORDER BY position LIMIT 1",
-    [step.course_id, step.position]
-  );
-  
-  if (nextStep) {
-    const existing = queryOne(
-      "SELECT * FROM step_progress WHERE user_id = ? AND step_id = ?",
-      [submission.user_id, nextStep.id]
-    );
-    
-    if (!existing) {
-      run("INSERT INTO step_progress (user_id, step_id, status) VALUES (?, ?, 'open')",
-        [submission.user_id, nextStep.id]);
-    } else if (existing.status === 'locked') {
-      run("UPDATE step_progress SET status = 'open' WHERE id = ?", [existing.id]);
-    }
-  }
-  
+
+  // Open next steps (handles info auto-completion)
+  openStepsForUser(submission.user_id, step.course_id);
+
   res.redirect('/admin/submissions');
 });
 

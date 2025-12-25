@@ -49,6 +49,18 @@
             ❌ Пожалуйста, прикрепите файл.
           </div>
         <% } %>
+
+        <% if (typeof query !== 'undefined' && query.error === 'no_text') { %>
+          <div class="alert alert-error">
+            ❌ Пожалуйста, введите текстовый ответ.
+          </div>
+        <% } %>
+
+        <% if (typeof query !== 'undefined' && query.error === 'empty') { %>
+          <div class="alert alert-error">
+            ❌ Пожалуйста, заполните хотя бы одно поле ответа.
+          </div>
+        <% } %>
         
         <% if (step.content) { %>
           <div class="step-content-body">
@@ -83,23 +95,30 @@
             ✅ Этот степ выполнен! Вы можете перейти к следующему.
           </div>
           
-          <% if (progress.file_url) { %>
+          <% if (progress.file_url || progress.text_answer) { %>
             <div class="card">
               <h3 style="margin-bottom: 1rem;">Ваш ответ</h3>
-              <% if (progress.file_url.match(/\.(mp4|webm|mov)$/i)) { %>
-                <div class="video-container">
-                  <video controls>
-                    <source src="<%= progress.file_url %>" type="video/mp4">
-                  </video>
+              <% if (progress.text_answer) { %>
+                <div class="answer-text" style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                  <%- progress.text_answer.replace(/\n/g, '<br>') %>
                 </div>
-              <% } else { %>
-                <a href="<%= progress.file_url %>" target="_blank" class="btn btn-secondary">
-                  📎 Скачать файл
-                </a>
+              <% } %>
+              <% if (progress.file_url) { %>
+                <% if (progress.file_url.match(/\.(mp4|webm|mov)$/i)) { %>
+                  <div class="video-container">
+                    <video controls>
+                      <source src="<%= progress.file_url %>" type="video/mp4">
+                    </video>
+                  </div>
+                <% } else { %>
+                  <a href="<%= progress.file_url %>" target="_blank" class="btn btn-secondary">
+                    📎 Скачать файл
+                  </a>
+                <% } %>
               <% } %>
             </div>
           <% } %>
-          
+
           <div style="margin-top: 1.5rem;">
             <a href="/course/<%= course.id %>" class="btn btn-primary">
               ← Вернуться к курсу
@@ -109,44 +128,73 @@
           <div class="alert alert-warning">
             ⏳ Ваше задание отправлено и ожидает проверки преподавателем.
           </div>
-          
-          <% if (progress.file_url) { %>
+
+          <% if (progress.file_url || progress.text_answer) { %>
             <div class="card">
               <h3 style="margin-bottom: 1rem;">Ваш ответ</h3>
-              <% if (progress.file_url.match(/\.(mp4|webm|mov)$/i)) { %>
-                <div class="video-container">
-                  <video controls>
-                    <source src="<%= progress.file_url %>" type="video/mp4">
-                  </video>
+              <% if (progress.text_answer) { %>
+                <div class="answer-text" style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                  <%- progress.text_answer.replace(/\n/g, '<br>') %>
                 </div>
-              <% } else { %>
-                <a href="<%= progress.file_url %>" target="_blank" class="btn btn-secondary">
-                  📎 Скачать файл
-                </a>
+              <% } %>
+              <% if (progress.file_url) { %>
+                <% if (progress.file_url.match(/\.(mp4|webm|mov)$/i)) { %>
+                  <div class="video-container">
+                    <video controls>
+                      <source src="<%= progress.file_url %>" type="video/mp4">
+                    </video>
+                  </div>
+                <% } else { %>
+                  <a href="<%= progress.file_url %>" target="_blank" class="btn btn-secondary">
+                    📎 Скачать файл
+                  </a>
+                <% } %>
               <% } %>
             </div>
           <% } %>
-          
+
           <div style="margin-top: 1.5rem;">
             <a href="/course/<%= course.id %>" class="btn btn-secondary">
               ← Вернуться к курсу
             </a>
           </div>
+        <% } else if (step.step_type === 'info') { %>
+          <div class="alert alert-success">
+            ✅ Материал изучен! Можете переходить к следующему степу.
+          </div>
+          <div style="margin-top: 1.5rem;">
+            <a href="/course/<%= course.id %>" class="btn btn-primary">
+              ← Вернуться к курсу
+            </a>
+          </div>
         <% } else { %>
+          <% const answerType = step.answer_type || 'file'; %>
+          <% const needsText = answerType.includes('text'); %>
+          <% const needsFile = answerType.includes('file'); %>
+
           <div class="card">
-            <h3 style="margin-bottom: 1rem;">📤 Загрузка задания</h3>
-            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
-              Запишите видео выполнения задания или приложите файл с результатом.
-            </p>
-            
+            <h3 style="margin-bottom: 1rem;">📤 Отправка ответа</h3>
+
             <form method="POST" action="/step/<%= step.id %>/submit" enctype="multipart/form-data" id="uploadForm">
-              <label class="file-upload" for="fileInput" id="fileUploadLabel">
-                <div class="file-upload-icon">📹</div>
-                <div class="file-upload-text" id="fileName">Нажмите, чтобы выбрать файл</div>
-                <div class="file-upload-hint">MP4, MOV, AVI, WebM, PDF, DOC, ZIP — до 500 МБ</div>
-                <input type="file" id="fileInput" name="file" accept=".mp4,.mov,.avi,.webm,.mkv,.pdf,.doc,.docx,.zip" required>
-              </label>
-              
+              <% if (needsText) { %>
+                <div class="form-group">
+                  <label class="form-label">Текстовый ответ</label>
+                  <textarea name="text_answer" class="form-textarea" rows="6" placeholder="Введите ваш ответ..."><%= progress.text_answer || '' %></textarea>
+                </div>
+              <% } %>
+
+              <% if (needsFile) { %>
+                <div class="form-group">
+                  <label class="form-label">Файл / видео</label>
+                  <label class="file-upload" for="fileInput" id="fileUploadLabel">
+                    <div class="file-upload-icon">📹</div>
+                    <div class="file-upload-text" id="fileName">Нажмите, чтобы выбрать файл</div>
+                    <div class="file-upload-hint">MP4, MOV, AVI, WebM, PDF, DOC, ZIP — до 500 МБ</div>
+                    <input type="file" id="fileInput" name="file" accept=".mp4,.mov,.avi,.webm,.mkv,.pdf,.doc,.docx,.zip" <%= needsFile && !needsText ? 'required' : '' %>>
+                  </label>
+                </div>
+              <% } %>
+
               <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
                 <button type="submit" class="btn btn-primary" id="submitBtn">
                   Отправить на проверку

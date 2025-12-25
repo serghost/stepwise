@@ -74,10 +74,20 @@
                     </td>
                     <td>
                       <% if (u.invite_code) { %>
-                        <div class="invite-box" style="padding: 0.5rem 0.75rem;">
-                          <div>
-                            <div class="text-sm text-muted">Ссылка для регистрации:</div>
-                            <code class="invite-code" style="font-size: 0.8rem;">/register/<%= u.invite_code %></code>
+                        <div class="invite-box" style="padding: 0.5rem 0.75rem; margin-bottom: 0.5rem;">
+                          <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="text"
+                                   class="form-input"
+                                   style="font-size: 0.75rem; padding: 0.25rem 0.5rem; flex: 1;"
+                                   value="<%= typeof baseUrl !== 'undefined' ? baseUrl : '' %>/register/<%= u.invite_code %>"
+                                   readonly
+                                   id="invite-<%= u.id %>">
+                            <button type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    onclick="copyInvite('<%= u.id %>')"
+                                    title="Копировать">
+                              📋
+                            </button>
                           </div>
                         </div>
                       <% } %>
@@ -94,5 +104,16 @@
       </div>
     </main>
   </div>
+<script>
+function copyInvite(id) {
+  const input = document.getElementById('invite-' + id);
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = input.nextElementSibling;
+    btn.textContent = '✓';
+    setTimeout(() => btn.textContent = '📋', 1500);
+  });
+}
+</script>
 </body>
 </html>

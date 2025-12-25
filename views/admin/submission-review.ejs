@@ -62,22 +62,36 @@
           <% } %>
           
           <div class="card">
-            <h3 style="margin-bottom: 1rem;">Решение</h3>
-            
-            <% if (submission.file_url) { %>
-              <% if (submission.file_url.match(/\.(mp4|webm|mov)$/i)) { %>
-                <div class="video-container">
-                  <video controls style="width: 100%;">
-                    <source src="<%= submission.file_url %>" type="video/mp4">
-                  </video>
+            <h3 style="margin-bottom: 1rem;">Ответ ученика</h3>
+
+            <% if (submission.text_answer) { %>
+              <div style="margin-bottom: 1rem;">
+                <label class="form-label" style="margin-bottom: 0.5rem;">Текстовый ответ:</label>
+                <div class="answer-text" style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px;">
+                  <%- submission.text_answer.replace(/\n/g, '<br>') %>
                 </div>
-              <% } else { %>
-                <a href="<%= submission.file_url %>" target="_blank" class="btn btn-secondary">
-                  📎 Скачать файл
-                </a>
-              <% } %>
-            <% } else { %>
-              <p class="text-muted">Файл не прикреплён</p>
+              </div>
+            <% } %>
+
+            <% if (submission.file_url) { %>
+              <div>
+                <label class="form-label" style="margin-bottom: 0.5rem;">Файл:</label>
+                <% if (submission.file_url.match(/\.(mp4|webm|mov)$/i)) { %>
+                  <div class="video-container">
+                    <video controls style="width: 100%;">
+                      <source src="<%= submission.file_url %>" type="video/mp4">
+                    </video>
+                  </div>
+                <% } else { %>
+                  <a href="<%= submission.file_url %>" target="_blank" class="btn btn-secondary">
+                    📎 Скачать файл
+                  </a>
+                <% } %>
+              </div>
+            <% } %>
+
+            <% if (!submission.file_url && !submission.text_answer) { %>
+              <p class="text-muted">Ответ не предоставлен</p>
             <% } %>
           </div>
         </div>
