@@ -214,8 +214,8 @@ function run(sql, params = []) {
   saveDb();
 }
 
-// Open steps for user: all info steps + first uncompleted task
-// Algorithm: open consecutive steps until we hit an uncompleted task (inclusive)
+// Open steps for user: open first uncompleted step (info or task)
+// Algorithm: find first step that isn't completed and open it
 function openStepsForUser(userId, courseId) {
   const steps = query(
     "SELECT * FROM steps WHERE course_id = ? ORDER BY position",
@@ -228,32 +228,20 @@ function openStepsForUser(userId, courseId) {
       [userId, step.id]
     );
 
-    // If step is info - always open it
-    if (step.step_type === 'info') {
-      if (!progress) {
-        run("INSERT INTO step_progress (user_id, step_id, status) VALUES (?, ?, 'completed')",
-          [userId, step.id]);
-      } else if (progress.status === 'locked') {
-        run("UPDATE step_progress SET status = 'completed' WHERE id = ?", [progress.id]);
-      }
-      continue; // Move to next step
-    }
-
-    // If step is task
     if (!progress) {
-      // Open this task and stop
+      // Open this step and stop
       run("INSERT INTO step_progress (user_id, step_id, status) VALUES (?, ?, 'open')",
         [userId, step.id]);
       break;
     } else if (progress.status === 'locked') {
-      // Open this task and stop
+      // Open this step and stop
       run("UPDATE step_progress SET status = 'open' WHERE id = ?", [progress.id]);
       break;
     } else if (progress.status === 'completed') {
-      // Task completed, continue to next
+      // Step completed, continue to next
       continue;
     } else {
-      // Task is open/pending/rejected - stop here
+      // Step is open/pending/rejected - stop here
       break;
     }
   }
@@ -410,34 +398,52 @@ app.get('/course/:id', requireAuth, (req, res) => {
 app.get('/step/:id', requireAuth, (req, res) => {
   const stepId = req.params.id;
   const userId = req.session.userId;
-  
+
   const step = queryOne("SELECT * FROM steps WHERE id = ?", [stepId]);
   if (!step) {
     return res.render('error', { message: 'Степ не найден' });
   }
-  
+
   // Check enrollment
   const enrollment = queryOne(
     "SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?",
     [userId, step.course_id]
   );
-  
+
   if (!enrollment) {
     return res.render('error', { message: 'У вас нет доступа к этому курсу' });
   }
-  
-  const progress = queryOne(
+
+  let progress = queryOne(
     "SELECT * FROM step_progress WHERE user_id = ? AND step_id = ?",
     [userId, stepId]
   );
-  
+
   if (!progress || progress.status === 'locked') {
     return res.render('error', { message: 'Этот степ пока недоступен' });
   }
-  
+
+  // If info step is open, mark as completed when viewed
+  if (step.step_type === 'info' && progress.status === 'open') {
+    run("UPDATE step_progress SET status = 'completed' WHERE id = ?", [progress.id]);
+    progress.status = 'completed';
+    // Open next step
+    openStepsForUser(userId, step.course_id);
+  }
+
   const course = queryOne("SELECT * FROM courses WHERE id = ?", [step.course_id]);
-  
-  res.render('student/step', { step, progress, course });
+
+  // Find next available step
+  const nextStep = queryOne(`
+    SELECT s.id, s.title FROM steps s
+    LEFT JOIN step_progress sp ON s.id = sp.step_id AND sp.user_id = ?
+    WHERE s.course_id = ? AND s.position > ?
+    AND (sp.status IS NULL OR sp.status != 'locked')
+    ORDER BY s.position
+    LIMIT 1
+  `, [userId, step.course_id, step.position]);
+
+  res.render('student/step', { step, progress, course, nextStep });
 });
 
 app.post('/step/:id/submit', requireAuth, upload.single('file'), async (req, res) => {

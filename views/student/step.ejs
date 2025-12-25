@@ -92,9 +92,9 @@
         
         <% if (progress.status === 'completed') { %>
           <div class="alert alert-success">
-            ✅ Этот степ выполнен! Вы можете перейти к следующему.
+            ✅ Этот степ выполнен!<% if (nextStep) { %> Можете перейти к следующему.<% } %>
           </div>
-          
+
           <% if (progress.file_url || progress.text_answer) { %>
             <div class="card">
               <h3 style="margin-bottom: 1rem;">Ваш ответ</h3>
@@ -119,10 +119,15 @@
             </div>
           <% } %>
 
-          <div style="margin-top: 1.5rem;">
-            <a href="/course/<%= course.id %>" class="btn btn-primary">
-              ← Вернуться к курсу
+          <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="/course/<%= course.id %>" class="btn btn-secondary">
+              ← К курсу
             </a>
+            <% if (nextStep) { %>
+              <a href="/step/<%= nextStep.id %>" class="btn btn-primary">
+                Следующий: <%= nextStep.title %> →
+              </a>
+            <% } %>
           </div>
         <% } else if (progress.status === 'pending') { %>
           <div class="alert alert-warning">
@@ -160,12 +165,17 @@
           </div>
         <% } else if (step.step_type === 'info') { %>
           <div class="alert alert-success">
-            ✅ Материал изучен! Можете переходить к следующему степу.
+            ✅ Материал изучен!<% if (nextStep) { %> Можете переходить к следующему степу.<% } %>
           </div>
-          <div style="margin-top: 1.5rem;">
-            <a href="/course/<%= course.id %>" class="btn btn-primary">
-              ← Вернуться к курсу
+          <div style="margin-top: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="/course/<%= course.id %>" class="btn btn-secondary">
+              ← К курсу
             </a>
+            <% if (nextStep) { %>
+              <a href="/step/<%= nextStep.id %>" class="btn btn-primary">
+                Следующий: <%= nextStep.title %> →
+              </a>
+            <% } %>
           </div>
         <% } else { %>
           <% const answerType = step.answer_type || 'file'; %>
