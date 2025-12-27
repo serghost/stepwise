@@ -54,7 +54,11 @@
             <% if (needsReminder) { %>
               <div class="lock-reminder" style="background: var(--bg-tertiary); border-left: 3px solid var(--primary); padding: 1rem; margin: 0.5rem 0; border-radius: 8px;">
                 <strong>🔐 Следующие уроки заблокированы</strong><br>
-                <span style="color: var(--text-muted);">Для открытия сдайте домашнее задание в степе «<%= prevStep.title %>»</span>
+                <% if (prevStep.step_type === 'info') { %>
+                  <span style="color: var(--text-muted);">Для открытия просмотрите урок «<%= prevStep.title %>»</span>
+                <% } else { %>
+                  <span style="color: var(--text-muted);">Для открытия сдайте домашнее задание в уроке «<%= prevStep.title %>»</span>
+                <% } %>
               </div>
             <% } %>
             <% if (isClickable) { %>

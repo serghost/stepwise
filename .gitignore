@@ -3,3 +3,5 @@ public/uploads/*
 !public/uploads/.gitkeep
 .env
 stepwise.db
+.DS_Store
+seed/
