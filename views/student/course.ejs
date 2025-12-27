@@ -39,11 +39,24 @@
         </div>
         
         <div class="steps-list">
+          <%
+            let showLockReminder = false;
+            let prevStep = null;
+          %>
           <% steps.forEach((step, index) => { %>
-            <% 
+            <%
               const isClickable = step.status !== 'locked';
               const statusClass = step.status;
+              // Показываем напоминание перед первым заблокированным степом
+              const needsReminder = step.status === 'locked' && !showLockReminder && prevStep;
+              if (needsReminder) showLockReminder = true;
             %>
+            <% if (needsReminder) { %>
+              <div class="lock-reminder" style="background: var(--bg-tertiary); border-left: 3px solid var(--primary); padding: 1rem; margin: 0.5rem 0; border-radius: 8px;">
+                <strong>🔐 Следующие уроки заблокированы</strong><br>
+                <span style="color: var(--text-muted);">Для открытия сдайте домашнее задание в степе «<%= prevStep.title %>»</span>
+              </div>
+            <% } %>
             <% if (isClickable) { %>
               <a href="/step/<%= step.id %>" class="step-item <%= statusClass %> clickable">
             <% } else { %>
@@ -76,6 +89,7 @@
             <% } else { %>
               </div>
             <% } %>
+            <% prevStep = step; %>
           <% }) %>
         </div>
         

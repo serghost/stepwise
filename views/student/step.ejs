@@ -37,7 +37,19 @@
           <h1 class="page-title"><%= step.title %></h1>
           <p class="page-subtitle">Степ <%= step.position %></p>
         </div>
-        
+
+        <% if (step.step_type === 'task') { %>
+          <div class="step-nav" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <% if (step.video_url) { %>
+              <a href="#video" class="btn btn-secondary btn-sm">📹 Видео</a>
+            <% } %>
+            <% if (step.content) { %>
+              <a href="#material" class="btn btn-secondary btn-sm">📖 Материал</a>
+            <% } %>
+            <a href="#homework" class="btn btn-secondary btn-sm">📝 Домашнее задание</a>
+          </div>
+        <% } %>
+
         <% if (typeof query !== 'undefined' && query.success === 'submitted') { %>
           <div class="alert alert-success">
             ✅ Задание отправлено на проверку! Преподаватель скоро его проверит.
@@ -62,19 +74,22 @@
           </div>
         <% } %>
         
-        <% if (step.content) { %>
-          <div class="step-content-body">
-            <%- step.content.replace(/\n/g, '<br>') %>
-          </div>
-        <% } %>
-        
         <% if (step.video_url) { %>
-          <div class="card" style="margin-bottom: 1.5rem;">
+          <div id="video" class="card" style="margin-bottom: 1.5rem;">
             <h3 style="margin-bottom: 1rem;">📹 Видео урока</h3>
             <div class="video-container">
               <video controls style="width: 100%;">
                 <source src="<%= step.video_url %>" type="video/mp4">
               </video>
+            </div>
+          </div>
+        <% } %>
+
+        <% if (step.content) { %>
+          <div id="material" class="card" style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 1rem;">📖 Материал урока</h3>
+            <div class="step-content-body">
+              <%- step.content.replace(/\n/g, '<br>') %>
             </div>
           </div>
         <% } %>
@@ -182,8 +197,8 @@
           <% const needsText = answerType.includes('text'); %>
           <% const needsFile = answerType.includes('file'); %>
 
-          <div class="card">
-            <h3 style="margin-bottom: 1rem;">📤 Отправка ответа</h3>
+          <div id="homework" class="card">
+            <h3 style="margin-bottom: 1rem;">📝 Домашнее задание</h3>
 
             <form method="POST" action="/step/<%= step.id %>/submit" enctype="multipart/form-data" id="uploadForm">
               <% if (needsText) { %>
